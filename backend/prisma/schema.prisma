@@ -14,12 +14,74 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   name      String
-  email     String   @unique
+  email     String     @unique
   password  String
-  role      Role     @default(user) // Can be "user" or "admin"
-  createdAt DateTime @default(now())
+  role      Role       @default(user)
+  createdAt DateTime   @default(now())
+  CartItem  CartItem[]
+  Order     Order[]
+  Payment   Payment[]
+}
+
+model Product {
+  id          String     @id @default(uuid())
+  name        String
+  description String
+  price       Float
+  stock       Int        @default(0)
+  category    String
+  imageUrl    String?
+  createdAt   DateTime   @default(now())
+  CartItem    CartItem[]
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int     @default(1)
+  user      User    @relation(fields: [userId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  userId     String
+  totalPrice Float
+  status     OrderStatus @default(pending)
+  createdAt  DateTime    @default(now())
+  user       User        @relation(fields: [userId], references: [id])
+  payments   Payment[]
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  orderId       String        @unique
+  userId        String
+  amount        Float
+  status        PaymentStatus @default(pending)
+  transactionId String? // PayPal Transaction ID (if available)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  order         Order         @relation(fields: [orderId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  delivered
+  cancelled
 }
 
 enum Role {
