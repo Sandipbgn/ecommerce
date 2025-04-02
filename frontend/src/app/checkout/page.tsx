@@ -15,15 +15,6 @@ export default function CheckoutPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState({
-    fullName: "",
-    address: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "",
-    phone: "",
-  });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -59,34 +50,14 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setShippingAddress((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate the form
-    for (const [key, value] of Object.entries(shippingAddress)) {
-      if (!value.trim()) {
-        toast.error(
-          `${key.charAt(0).toUpperCase() + key.slice(1)} is required`
-        );
-        return;
-      }
-    }
 
     try {
       setPlacingOrder(true);
 
-      // Create the order
-      const orderResponse = await orderService.createOrder({
-        shippingAddress,
-      });
+      // Create the order without shipping address
+      const orderResponse = await orderService.createOrder({});
 
       // Redirect to payment page with the order ID
       if (orderResponse.data.order.id) {
@@ -113,139 +84,9 @@ export default function CheckoutPage() {
       <h1 className="text-2xl font-bold mb-6 text-heading">Checkout</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Shipping Address Form */}
-        <div className="md:col-span-2">
+        {/* Order Summary and Checkout Button */}
+        <div className="md:col-span-3">
           <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold mb-4 text-heading">
-              Shipping Address
-            </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="fullName" className="block text-body mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={shippingAddress.fullName}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded text-body"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="address" className="block text-body mb-1">
-                  Address
-                </label>
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={shippingAddress.address}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded text-body"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="city" className="block text-body mb-1">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    id="city"
-                    name="city"
-                    value={shippingAddress.city}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border rounded text-body"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="state" className="block text-body mb-1">
-                    State/Province
-                  </label>
-                  <input
-                    type="text"
-                    id="state"
-                    name="state"
-                    value={shippingAddress.state}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border rounded text-body"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="postalCode" className="block text-body mb-1">
-                    Postal Code
-                  </label>
-                  <input
-                    type="text"
-                    id="postalCode"
-                    name="postalCode"
-                    value={shippingAddress.postalCode}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border rounded text-body"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="country" className="block text-body mb-1">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    id="country"
-                    name="country"
-                    value={shippingAddress.country}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border rounded text-body"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="phone" className="block text-body mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={shippingAddress.phone}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded text-body"
-                  required
-                />
-              </div>
-
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={placingOrder}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400"
-                >
-                  {placingOrder ? "Processing..." : "Continue to Payment"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        {/* Order Summary */}
-        <div className="md:col-span-1">
-          <div className="bg-white p-6 rounded-lg shadow-sm sticky top-4">
             <h2 className="text-xl font-semibold mb-4 text-heading">
               Order Summary
             </h2>
@@ -278,6 +119,23 @@ export default function CheckoutPage() {
             <div className="flex justify-between font-bold">
               <span className="text-heading">Total</span>
               <span className="text-heading">${total.toFixed(2)}</span>
+            </div>
+
+            <div className="pt-6">
+              <button
+                onClick={handleSubmit}
+                disabled={placingOrder}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400"
+              >
+                {placingOrder ? "Processing..." : "Continue to Payment"}
+              </button>
+
+              <Link
+                href="/cart"
+                className="block text-center mt-4 text-blue-600 hover:underline"
+              >
+                Return to Cart
+              </Link>
             </div>
           </div>
         </div>

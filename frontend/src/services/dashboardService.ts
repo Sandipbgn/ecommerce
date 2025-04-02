@@ -26,7 +26,7 @@ export const dashboardService = {
 
   // Get all users (for admin user management)
   getAllUsers: async (params?: { page?: number; limit?: number }) => {
-    const response = await api.get("/users", { params });
+    const response = await api.get("/user", { params });
     return response.data;
   },
 };

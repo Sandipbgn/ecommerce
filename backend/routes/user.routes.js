@@ -1,6 +1,6 @@
 const router = require('express').Router();
-const { registerUser, loginUser, getMe } = require('../controllers/user.controller');
-const { auth } = require('../middleware/auth.middleware');
+const { registerUser, loginUser, getMe, getUsers } = require('../controllers/user.controller');
+const { auth, admin } = require('../middleware/auth.middleware');
 
 /**
  * @route POST /api/user/register
@@ -24,5 +24,12 @@ router.post('/login', loginUser);
  * @access Private
  */
 router.get('/me', auth, getMe);
+
+/**
+ * @route GET /api/users
+ * @desc Get all users (Admin only)
+ * @access Private/Admin
+ */
+router.get('/', auth, admin, getUsers);
 
 module.exports = router;

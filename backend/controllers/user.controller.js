@@ -111,8 +111,60 @@ const getMe = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc    Get all users (Admin only)
+// @route   GET /api/users
+// @access  Private/Admin
+const getUsers = asyncHandler(async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        // Get total count for pagination
+        const total = await prisma.user.count();
+
+        // Get users with order counts
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                createdAt: true,
+                _count: {
+                    select: {
+                        Order: true
+                    }
+                }
+            },
+            skip,
+            take: parseInt(limit),
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.status(200).json({
+            message: 'Users fetched successfully',
+            data: users,
+            meta: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({
+            message: 'Error fetching users',
+            error: error.message
+        });
+    }
+});
+
 module.exports = {
     registerUser,
     loginUser,
     getMe,
+    getUsers // Add this new export
 };
