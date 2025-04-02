@@ -1,118 +1,118 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
-import { useAuth } from '@/context/AuthContext';
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "react-hot-toast";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const { login, loading } = useAuth();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, login } = useAuth();
 
-  const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
-    
-    if (!email) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email is invalid';
-    
-    if (!password) newErrors.password = 'Password is required';
-    else if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  // Get redirect URL from query params
+  const redirectUrl = searchParams.get("redirect") || "/";
+
+  useEffect(() => {
+    // If user is already logged in, redirect immediately
+    if (user) {
+      router.push(redirectUrl);
+    }
+  }, [user, router, redirectUrl]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) return;
-    
+
     try {
-      await login(email, password);
-      router.push('/');
-    } catch (error) {
-      console.error('Login error:', error);
+      setLoading(true);
+      await login(formData.email, formData.password);
+      toast.success("Login successful!");
+
+      // Add a parameter to indicate redirect from login when going back to product
+      if (redirectUrl.startsWith("/products/")) {
+        router.push(`${redirectUrl}?redirected=true`);
+      } else {
+        router.push(redirectUrl);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link
-              href="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              create a new account
-            </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <Input
+    <div className="container mx-auto p-4 max-w-md">
+      <div className="bg-white p-8 shadow-md rounded-lg">
+        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-gray-700 mb-1">
+              Email Address
+            </label>
+            <input
+              type="email"
               id="email"
               name="email"
-              type="email"
-              autoComplete="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              label="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={errors.email}
             />
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              label="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={errors.password}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                Forgot your password?
-              </a>
-            </div>
           </div>
 
           <div>
-            <Button
-              type="submit"
-              fullWidth
-              isLoading={loading}
-            >
-              Sign in
-            </Button>
+            <label htmlFor="password" className="block text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
           </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
         </form>
+
+        <div className="mt-4 text-center">
+          <p className="text-gray-600">
+            Don't have an account?{" "}
+            <Link href="/register" className="text-blue-600 hover:underline">
+              Register
+            </Link>
+          </p>
+        </div>
+
+        {redirectUrl !== "/" && (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-500">
+              You'll be redirected back after login
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

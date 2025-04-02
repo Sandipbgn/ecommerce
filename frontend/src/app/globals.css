@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Adding more color variables for better visibility */
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --link-color: #2563eb;
+  --border-color: #e5e7eb;
 }
 
 @theme inline {
@@ -16,6 +22,11 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --text-primary: #f3f4f6;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --link-color: #3b82f6;
+    --border-color: #374151;
   }
 }
 
@@ -23,4 +34,29 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Adding specific text color classes that take precedence */
+.text-heading {
+  color: var(--text-primary) !important;
+}
+
+.text-body {
+  color: var(--text-secondary) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.text-link {
+  color: var(--link-color) !important;
+}
+
+/* Improved input field styling */
+input,
+select,
+textarea {
+  color: var(--text-primary) !important;
+  background-color: white;
 }
