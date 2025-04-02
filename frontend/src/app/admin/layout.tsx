@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -15,7 +15,7 @@ import {
 } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 
-export default function AdminLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();

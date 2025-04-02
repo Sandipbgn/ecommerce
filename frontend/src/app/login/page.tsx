@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 
-export default function LoginPage() {
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message: string;
+}
+
+// Wrapper component that uses searchParams
+function LoginContent() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -40,24 +50,33 @@ export default function LoginPage() {
       toast.success("Login successful!");
 
       // Add a parameter to indicate redirect from login when going back to product
-      if (redirectUrl.startsWith("/products/")) {
-        router.push(`${redirectUrl}?redirected=true`);
-      } else {
-        router.push(redirectUrl);
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Login failed");
+      router.push(redirectUrl);
+    } catch (err) {
+      const error = err as ApiError;
+      toast.error(error.response?.data?.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-md">
-      <div className="bg-white p-8 shadow-md rounded-lg">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{" "}
+            <Link
+              href="/register"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
+              create a new account
+            </Link>
+          </p>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="email" className="block text-gray-700 mb-1">
               Email Address
@@ -99,21 +118,34 @@ export default function LoginPage() {
 
         <div className="mt-4 text-center">
           <p className="text-gray-600">
-            Don't have an account?{" "}
-            <Link href="/register" className="text-blue-600 hover:underline">
-              Register
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="text-blue-600 hover:text-blue-500"
+            >
+              Sign up
+            </Link>
+          </p>
+          <p className="text-gray-600 mt-2">
+            Forgot your password?{" "}
+            <Link
+              href="/forgot-password"
+              className="text-blue-600 hover:text-blue-500"
+            >
+              Reset it here
             </Link>
           </p>
         </div>
-
-        {redirectUrl !== "/" && (
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-500">
-              You'll be redirected back after login
-            </p>
-          </div>
-        )}
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

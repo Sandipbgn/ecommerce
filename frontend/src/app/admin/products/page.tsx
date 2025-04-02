@@ -1,12 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { productService } from "@/services/productService";
-import { Product, ProductsResponse } from "@/types/product";
+import { Product } from "@/types/product";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import Image from "next/image";
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message: string;
+}
 
 export default function AdminProductsPage() {
   const router = useRouter();
@@ -26,13 +35,7 @@ export default function AdminProductsPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user?.role === "admin") {
-      fetchProducts();
-    }
-  }, [page, user]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const response = await productService.getProducts({
@@ -47,7 +50,13 @@ export default function AdminProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
+
+  useEffect(() => {
+    if (user?.role === "admin") {
+      fetchProducts();
+    }
+  }, [page, user, fetchProducts]);
 
   const handleDeleteProduct = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this product?")) {
@@ -59,7 +68,8 @@ export default function AdminProductsPage() {
       await productService.deleteProduct(id);
       toast.success("Product deleted successfully");
       fetchProducts(); // Refresh list
-    } catch (err: any) {
+    } catch (error) {
+      const err = error as ApiError;
       toast.error(err.response?.data?.message || "Failed to delete product");
     } finally {
       setDeleting(null);
@@ -123,9 +133,11 @@ export default function AdminProductsPage() {
                     <td className="py-2 px-4 border-b">
                       <div className="h-12 w-12 overflow-hidden bg-gray-100">
                         {product.imageUrl ? (
-                          <img
+                          <Image
                             src={product.imageUrl}
                             alt={product.name}
+                            width={100}
+                            height={100}
                             className="h-full w-full object-cover"
                           />
                         ) : (

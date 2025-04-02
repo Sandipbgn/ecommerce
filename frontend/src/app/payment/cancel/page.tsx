@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FaTimesCircle } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 
 export default function PaymentCancelPage() {
-  const router = useRouter();
-
   useEffect(() => {
     toast.error("Payment was cancelled or failed");
   }, []);
@@ -26,8 +23,8 @@ export default function PaymentCancelPage() {
 
         <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">
           <p>
-            If you experienced any issues with the payment system, please contact
-            our customer support team for assistance.
+            If you experienced any issues with the payment system, please
+            contact our customer support team for assistance.
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { dashboardService } from "@/services/dashboardService";
@@ -8,12 +8,27 @@ import { toast } from "react-hot-toast";
 import Link from "next/link";
 import { format } from "date-fns";
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface Order {
+  id: string;
+  userId: string;
+  totalPrice: number;
+  status: "pending" | "paid" | "shipped" | "delivered" | "cancelled";
+  createdAt: string;
+  user?: User;
+}
+
 export default function AdminOrdersPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(null);
+  const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
@@ -25,13 +40,7 @@ export default function AdminOrdersPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user && user.role === "admin") {
-      fetchOrders();
-    }
-  }, [user, page, statusFilter]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -49,9 +58,14 @@ export default function AdminOrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter]);
+  useEffect(() => {
+    if (user && user.role === "admin") {
+      fetchOrders();
+    }
+  }, [user, page, statusFilter, fetchOrders]);
 
-  const updateOrderStatus = async (id, status) => {
+  const updateOrderStatus = async (id: string, status: string) => {
     try {
       setProcessing(id);
       await dashboardService.updateOrderStatus(id, status);
@@ -65,7 +79,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800";

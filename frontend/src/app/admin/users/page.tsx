@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { dashboardService } from "@/services/dashboardService";
@@ -8,10 +8,21 @@ import { toast } from "react-hot-toast";
 import Link from "next/link";
 import { format } from "date-fns";
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  _count?: {
+    orders?: number;
+  };
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -23,13 +34,7 @@ export default function AdminUsersPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user && user.role === "admin") {
-      fetchUsers();
-    }
-  }, [user, page]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -46,7 +51,13 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
+
+  useEffect(() => {
+    if (user && user.role === "admin") {
+      fetchUsers();
+    }
+  }, [user, page, fetchUsers]);
 
   if (authLoading || loading) {
     return (

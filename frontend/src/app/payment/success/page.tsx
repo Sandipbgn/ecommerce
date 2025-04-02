@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { paymentService } from "@/services/paymentService";
@@ -8,17 +8,50 @@ import { toast } from "react-hot-toast";
 import Link from "next/link";
 import { FaCheckCircle } from "react-icons/fa";
 
-export default function PaymentSuccessPage() {
+interface Payment {
+  id: string;
+  amount: number;
+  status: string;
+  transactionId: string;
+}
+
+interface Order {
+  id: string;
+  status: string;
+  totalPrice: number;
+}
+
+// Wrapper component that uses searchParams
+function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [payment, setPayment] = useState(null);
-  const [order, setOrder] = useState(null);
+  const [payment, setPayment] = useState<Payment | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
 
   // Get transaction ID from URL query params
   const token = searchParams.get("token");
-  const PayerID = searchParams.get("PayerID");
+
+  const verifyAndCapturePayment = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      setLoading(true);
+      // Capture payment
+      const captureResponse = await paymentService.capturePayment(token);
+
+      setPayment(captureResponse.data);
+      setOrder(captureResponse.data.order);
+
+      toast.success("Payment successful!");
+    } catch (err) {
+      console.error("Payment verification error:", err);
+      toast.error("Failed to verify payment. Please contact support.");
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -33,25 +66,7 @@ export default function PaymentSuccessPage() {
       toast.error("Invalid payment information");
       router.push("/orders");
     }
-  }, [user, authLoading, token, PayerID]);
-
-  const verifyAndCapturePayment = async () => {
-    try {
-      setLoading(true);
-      // Then capture payment
-      const captureResponse = await paymentService.capturePayment(token);
-
-      setPayment(captureResponse.data);
-      setOrder(captureResponse.data.order);
-
-      toast.success("Payment successful!");
-    } catch (err) {
-      console.error("Payment verification error:", err);
-      toast.error("Failed to verify payment. Please contact support.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [user, authLoading, token, router, verifyAndCapturePayment]);
 
   if (authLoading || loading) {
     return (
@@ -67,7 +82,7 @@ export default function PaymentSuccessPage() {
         <div className="bg-red-50 text-red-700 p-4 rounded-lg">
           <h2 className="text-lg font-semibold mb-2">Payment Error</h2>
           <p>
-            We couldn't verify your payment. Please contact customer support.
+            We could not verify your payment. Please contact customer support.
           </p>
           <Link
             href="/orders"
@@ -136,5 +151,20 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto p-4 flex justify-center py-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      }
+    >
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

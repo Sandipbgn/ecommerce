@@ -1,35 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { cartService } from "@/services/cartService";
 import { orderService } from "@/services/orderService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
+import { CartItem } from "@/types/cart";
 
-export default function CheckoutPage() {
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message: string;
+}
+
+// Wrapper component that uses searchParams
+function CheckoutContent() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      toast.error("Please log in to continue checkout");
-      router.push("/login?redirect=/checkout");
-    }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    if (user) {
-      fetchCart();
-    }
-  }, [user]);
-
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     try {
       setLoading(true);
       const response = await cartService.getCart();
@@ -42,22 +40,46 @@ export default function CheckoutPage() {
 
       setCartItems(response.data.items);
       setTotal(response.data.total);
-    } catch (err) {
+    } catch (error) {
+      console.log(error);
       toast.error("Failed to load cart items");
       router.push("/cart");
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast.error("Please log in to continue checkout");
+      router.push("/login?redirect=/checkout");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user) {
+      fetchCart();
+    }
+  }, [user, fetchCart]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       setPlacingOrder(true);
 
-      // Create the order without shipping address
-      const orderResponse = await orderService.createOrder({});
+      // Create the order with empty shipping address for now
+      const orderResponse = await orderService.createOrder({
+        shippingAddress: {
+          fullName: "",
+          address: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          country: "",
+          phone: "",
+        },
+      });
 
       // Redirect to payment page with the order ID
       if (orderResponse.data.order.id) {
@@ -66,7 +88,8 @@ export default function CheckoutPage() {
         throw new Error("Order creation failed");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to create order");
+      const error = err as ApiError;
+      toast.error(error.response?.data?.message || "Failed to create order");
       setPlacingOrder(false);
     }
   };
@@ -141,5 +164,20 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto p-4 flex justify-center py-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
   );
 }

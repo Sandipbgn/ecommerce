@@ -12,11 +12,14 @@ import {
 } from "react-icons/fa";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
+import { DashboardData } from "@/types/dashboard";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

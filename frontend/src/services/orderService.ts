@@ -3,7 +3,7 @@ import { api } from "@/lib/axios";
 export const orderService = {
 
   // Create a new order
-  createOrder: async (data: { shippingAddress: any }) => {
+  createOrder: async (data: { shippingAddress: unknown }) => {
     const response = await api.post("/orders", data);
     return response.data;
   },

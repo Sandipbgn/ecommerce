@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { productService } from "@/services/productService";
 import { Product } from "@/types/product";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -143,9 +144,11 @@ function ProductCard({ product }: { product: Product }) {
       <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="h-48 overflow-hidden bg-gray-100">
           {product.imageUrl ? (
-            <img
+            <Image
               src={product.imageUrl}
               alt={product.name}
+              width={100}
+              height={100}
               className="w-full h-full object-cover"
             />
           ) : (

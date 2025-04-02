@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { productService } from "@/services/productService";
 import { Product } from "@/types/product";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -8,67 +8,69 @@ import { cartService } from "@/services/cartService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
+import Image from "next/image";
 
-export default function ProductDetailPage() {
-  const { id } = useParams();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+    status?: number;
+  };
+  message: string;
+}
+
+// Wrapper component that uses searchParams
+function ProductDetailContent() {
   const { user } = useAuth();
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
 
-  // Check if we're redirected from login
-  const redirected = searchParams.get("redirected");
-
   useEffect(() => {
-    if (typeof id !== "string") return;
-
     const fetchProduct = async () => {
       try {
-        setLoading(true);
-        const response = await productService.getProductById(id);
+        const productId = typeof params.id === "string" ? params.id : "";
+        const response = await productService.getProductById(productId);
         setProduct(response.data);
-
-        // If redirected from login, show welcome message
-        if (redirected === "true" && user) {
-          toast.success(
-            `Welcome back! You can now add this item to your cart.`
-          );
-        }
-      } catch (err: any) {
-        if (err.response?.status === 404) {
-          setError("Product not found");
-        } else {
-          setError("Failed to load product details");
-          console.error(err);
-        }
+      } catch (err) {
+        const error = err as ApiError;
+        setError(error.response?.data?.message || "Failed to load product");
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProduct();
-  }, [id, redirected, user]);
+  }, [params.id]);
 
   const handleAddToCart = async () => {
     if (!user) {
       toast.error("Please log in to add items to cart");
-      // Save the current URL to redirect back after login
-      router.push(`/login?redirect=/products/${id}`);
+      router.push(`/login?redirect=/products/${params.id}`);
       return;
     }
 
-    if (!product) return;
-
     try {
       setAddingToCart(true);
-      await cartService.addToCart({ productId: product.id, quantity });
-      toast.success("Product added to cart!");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to add to cart");
+      const productId = typeof params.id === "string" ? params.id : "";
+      await cartService.addToCart({ productId, quantity });
+      toast.success("Added to cart!");
+
+      // If coming from cart/checkout, redirect back
+      const redirect = searchParams.get("redirect");
+      if (redirect) {
+        router.push(redirect);
+      }
+    } catch (err) {
+      const error = err as ApiError;
+      toast.error(error.response?.data?.message || "Failed to add to cart");
     } finally {
       setAddingToCart(false);
     }
@@ -129,9 +131,11 @@ export default function ProductDetailPage() {
         {/* Product Image */}
         <div className="rounded-lg overflow-hidden bg-gray-100 h-96">
           {product.imageUrl ? (
-            <img
+            <Image
               src={product.imageUrl}
               alt={product.name}
+              width={100}
+              height={100}
               className="w-full h-full object-contain"
             />
           ) : (
@@ -201,5 +205,20 @@ export default function ProductDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function ProductDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto p-4 flex justify-center py-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      }
+    >
+      <ProductDetailContent />
+    </Suspense>
   );
 }

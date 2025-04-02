@@ -3,15 +3,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  /* Adding more color variables for better visibility */
   --text-primary: #1f2937;
   --text-secondary: #4b5563;
   --text-muted: #6b7280;
   --link-color: #2563eb;
   --border-color: #e5e7eb;
-}
 
-@theme inline {
+  /* Theme variables */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);

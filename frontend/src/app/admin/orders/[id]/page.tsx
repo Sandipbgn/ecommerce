@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { orderService } from "@/services/orderService";
@@ -8,12 +8,14 @@ import { dashboardService } from "@/services/dashboardService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import { format } from "date-fns";
+import Image from "next/image";
+import { Order } from "@/types";
 
 export default function AdminOrderDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [order, setOrder] = useState(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
@@ -24,16 +26,10 @@ export default function AdminOrderDetailPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user && user.role === "admin" && id) {
-      fetchOrderDetails();
-    }
-  }, [user, id]);
-
-  const fetchOrderDetails = async () => {
+  const fetchOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await orderService.getOrderById(id);
+      const response = await orderService.getOrderById(id as string);
       setOrder(response.data);
     } catch (err) {
       console.error("Error fetching order details:", err);
@@ -42,12 +38,18 @@ export default function AdminOrderDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
 
-  const updateOrderStatus = async (status) => {
+  useEffect(() => {
+    if (user && user.role === "admin" && id) {
+      fetchOrderDetails();
+    }
+  }, [user, id, fetchOrderDetails]);
+
+  const updateOrderStatus = async (status: string) => {
     try {
       setProcessing(true);
-      await dashboardService.updateOrderStatus(id, status);
+      await dashboardService.updateOrderStatus(id as string, status);
       toast.success(`Order status updated to ${status}`);
       fetchOrderDetails();
     } catch (err) {
@@ -58,7 +60,7 @@ export default function AdminOrderDetailPage() {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800";
@@ -274,9 +276,11 @@ export default function AdminOrderDetailPage() {
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {item.product?.imageUrl && (
-                            <img
+                            <Image
                               src={item.product.imageUrl}
                               alt={item.product.name}
+                              width={100}
+                            height={100}
                               className="h-10 w-10 rounded-full mr-3 object-cover"
                             />
                           )}
@@ -326,7 +330,7 @@ export default function AdminOrderDetailPage() {
           </div>
         </div>
 
-        <div>
+        {/* <div>
           <h2 className="font-semibold text-heading mb-4">Shipping Address</h2>
           {order.shippingAddress ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -362,7 +366,7 @@ export default function AdminOrderDetailPage() {
           ) : (
             <p className="text-body">No shipping information available</p>
           )}
-        </div>
+        </div> */}
       </div>
     </div>
   );

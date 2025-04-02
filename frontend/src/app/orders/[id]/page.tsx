@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { orderService } from "@/services/orderService";
@@ -8,40 +8,68 @@ import { toast } from "react-hot-toast";
 import Link from "next/link";
 import { format } from "date-fns";
 
+interface Payment {
+  id: string;
+  amount: number;
+  status: string;
+  transactionId?: string;
+  createdAt: string;
+}
+
+interface ShippingAddress {
+  fullName: string;
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone: string;
+}
+
+interface Order {
+  id: string;
+  status: string;
+  totalPrice: number;
+  createdAt: string;
+  payments?: Payment[];
+  shippingAddress?: ShippingAddress;
+}
+
 export default function OrderDetailPage() {
-  const { id } = useParams();
-  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [order, setOrder] = useState(null);
+  const router = useRouter();
+  const params = useParams();
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      toast.error("Please log in to view order details");
-      router.push(`/login?redirect=/orders/${id}`);
-    }
-  }, [user, authLoading, router, id]);
-
-  useEffect(() => {
-    if (user && id) {
-      fetchOrderDetails();
-    }
-  }, [user, id]);
-
-  const fetchOrderDetails = async () => {
+  const fetchOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await orderService.getOrderById(id);
+      const orderId = typeof params.id === 'string' ? params.id : '';
+      const response = await orderService.getOrderById(orderId);
       setOrder(response.data);
-    } catch (err) {
-      toast.error("Failed to load order details");
-      router.push("/orders");
+    } catch (error) {
+      console.error('Error fetching order:', error);
+      toast.error('Failed to load order details');
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
 
-  const getStatusBadgeClass = (status) => {
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast.error('Please log in to view order details');
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user) {
+      fetchOrderDetails();
+    }
+  }, [user, fetchOrderDetails]);
+
+  const getStatusBadgeClass = (status: string): string => {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800";

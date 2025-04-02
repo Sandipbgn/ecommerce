@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import { Product, ProductResponse, ProductsResponse } from "@/types/product";
+import { ProductResponse, ProductsResponse } from "@/types/product";
 
 export const productService = {
   // Get all products with filtering, pagination, and sorting

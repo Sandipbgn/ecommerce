@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { productService } from "@/services/productService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
+import Image from "next/image";
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message: string;
+}
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -75,7 +85,8 @@ export default function AddProductPage() {
       await productService.createProduct(data);
       toast.success("Product created successfully");
       router.push("/admin/products");
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = error as ApiError;
       toast.error(err.response?.data?.message || "Failed to create product");
     } finally {
       setLoading(false);
@@ -173,9 +184,11 @@ export default function AddProductPage() {
             />
             {imagePreview && (
               <div className="mt-2">
-                <img
+                <Image
                   src={imagePreview}
                   alt="Preview"
+                  width={100}
+                  height={100}
                   className="h-40 object-contain"
                 />
               </div>

@@ -1,17 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { productService } from "@/services/productService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
-import { Product } from "@/types/product";
+import Image from "next/image";
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
 
 export default function EditProductPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [product, setProduct] = useState<Product | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -24,8 +32,34 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
 
+  const fetchProduct = useCallback(
+    async (productId: string) => {
+      try {
+        setFetchLoading(true);
+        const response = await productService.getProductById(productId);
+        const productData = response.data;
+        setFormData({
+          name: productData.name,
+          description: productData.description,
+          price: productData.price.toString(),
+          stock: productData.stock.toString(),
+          category: productData.category,
+        });
+        if (productData.imageUrl) {
+          setImagePreview(productData.imageUrl);
+        }
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        toast.error("Failed to load product");
+        router.push("/admin/products");
+      } finally {
+        setFetchLoading(false);
+      }
+    },
+    [router]
+  );
+
   useEffect(() => {
-    // Redirect if not admin
     if (!authLoading && (!user || user.role !== "admin")) {
       toast.error("You don't have permission to access this page");
       router.push("/");
@@ -33,35 +67,10 @@ export default function EditProductPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    // Fetch product data
     if (typeof id === "string" && user?.role === "admin") {
       fetchProduct(id);
     }
-  }, [id, user]);
-
-  const fetchProduct = async (productId: string) => {
-    try {
-      setFetchLoading(true);
-      const response = await productService.getProductById(productId);
-      const product = response.data;
-      setProduct(product);
-      setFormData({
-        name: product.name,
-        description: product.description,
-        price: product.price.toString(),
-        stock: product.stock.toString(),
-        category: product.category,
-      });
-      if (product.imageUrl) {
-        setImagePreview(product.imageUrl);
-      }
-    } catch (err) {
-      toast.error("Failed to load product");
-      router.push("/admin/products");
-    } finally {
-      setFetchLoading(false);
-    }
-  };
+  }, [id, user, fetchProduct]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -112,8 +121,11 @@ export default function EditProductPage() {
       await productService.updateProduct(id, data);
       toast.success("Product updated successfully");
       router.push("/admin/products");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update product");
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      toast.error(
+        apiError.response?.data?.message || "Failed to update product"
+      );
     } finally {
       setLoading(false);
     }
@@ -211,9 +223,11 @@ export default function EditProductPage() {
                 <p className="text-sm text-gray-500 mb-1">
                   {image ? "New image preview:" : "Current image:"}
                 </p>
-                <img
+                <Image
                   src={imagePreview}
                   alt="Preview"
+                  width={100}
+                  height={100}
                   className="h-40 object-contain"
                 />
               </div>

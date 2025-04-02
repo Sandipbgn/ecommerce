@@ -7,6 +7,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
+import Image from "next/image";
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+    status?: number;
+  };
+  message: string;
+}
 
 export default function CartPage() {
   const router = useRouter();
@@ -38,13 +49,14 @@ export default function CartPage() {
       const response = await cartService.getCart();
       setCartItems(response.data.items);
       setTotal(response.data.total);
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err) {
+      const error = err as ApiError;
+      if (error.response?.status === 404) {
         setCartItems([]);
         setTotal(0);
       } else {
         setError("Failed to load cart items");
-        console.error(err);
+        console.error(error);
       }
     } finally {
       setLoading(false);
@@ -57,8 +69,9 @@ export default function CartPage() {
       await cartService.updateCartItem(id, quantity);
       await fetchCart(); // Refresh cart
       toast.success("Cart updated");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update cart");
+    } catch (err) {
+      const error = err as ApiError;
+      toast.error(error.response?.data?.message || "Failed to update cart");
     } finally {
       setUpdating(null);
     }
@@ -70,8 +83,9 @@ export default function CartPage() {
       await cartService.removeCartItem(id);
       await fetchCart(); // Refresh cart
       toast.success("Item removed from cart");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to remove item");
+    } catch (err) {
+      const error = err as ApiError;
+      toast.error(error.response?.data?.message || "Failed to remove item");
     } finally {
       setRemoving(null);
     }
@@ -86,8 +100,9 @@ export default function CartPage() {
       await cartService.clearCart();
       await fetchCart(); // Refresh cart
       toast.success("Cart cleared");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to clear cart");
+    } catch (err) {
+      const error = err as ApiError;
+      toast.error(error.response?.data?.message || "Failed to clear cart");
     }
   };
 
@@ -97,8 +112,9 @@ export default function CartPage() {
 
       // Redirect to checkout page
       router.push("/checkout");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to process order");
+    } catch (err) {
+      const error = err as ApiError;
+      toast.error(error.response?.data?.message || "Failed to process order");
       setProcessingOrder(false);
     }
   };
@@ -193,9 +209,11 @@ export default function CartPage() {
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0">
                           {item.product.imageUrl ? (
-                            <img
+                            <Image
                               src={item.product.imageUrl}
                               alt={item.product.name}
+                              width={100}
+                              height={100}
                               className="h-10 w-10 object-cover"
                             />
                           ) : (

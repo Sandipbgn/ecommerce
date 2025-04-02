@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { orderService } from "@/services/orderService";
@@ -8,10 +8,17 @@ import { toast } from "react-hot-toast";
 import Link from "next/link";
 import { format } from "date-fns";
 
+interface Order {
+  id: string;
+  createdAt: string;
+  totalPrice: number;
+  status: string;
+}
+
 export default function OrdersPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -24,13 +31,7 @@ export default function OrdersPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user, page, statusFilter]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -48,9 +49,15 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter]);
 
-  const getStatusBadgeClass = (status) => {
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user, page, statusFilter, fetchOrders]);
+
+  const getStatusBadgeClass = (status: string): string => {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800";
@@ -112,7 +119,7 @@ export default function OrdersPage() {
         </div>
       ) : orders.length === 0 ? (
         <div className="bg-white p-6 rounded-lg shadow-sm text-center">
-          <p className="text-body mb-4">You don't have any orders yet.</p>
+          <p className="text-body mb-4">You don&apos;t have any orders yet.</p>
           <Link
             href="/products"
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
