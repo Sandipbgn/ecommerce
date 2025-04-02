@@ -11,7 +11,7 @@ const { auth, admin } = require('../middleware/auth.middleware');
 /**
  * @route POST /api/orders
  * @desc Create a new order from cart
- * @access Private
+ * @access Privat
  */
 router.post('/', auth, createOrder);
 
