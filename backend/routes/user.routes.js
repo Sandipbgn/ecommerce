@@ -25,11 +25,4 @@ router.post('/login', loginUser);
  */
 router.get('/me', auth, getMe);
 
-/**
- * @route PATCH /api/user/me
- * @desc Update current user profile
- * @access Private
- */
-router.patch('/me', auth, (req, res) => { return res.status(200).json({ message: "User updated" }) });
-
 module.exports = router;

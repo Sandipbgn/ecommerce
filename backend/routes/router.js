@@ -10,6 +10,4 @@ module.exports = (app) => {
 
     app.use("/api/user", userRoutes);
     app.use("/api/product", productRoutes);
-
-
 };
