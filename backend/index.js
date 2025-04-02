@@ -1,5 +1,7 @@
 require("dotenv").config();
 const express = require("express");
+const { errorHandler, notFound } = require("./middleware/error.middleware");
+
 
 const app = express();
 const server = require("http").createServer(app);
@@ -14,9 +16,13 @@ app.use((req, res, next) => {
     next();
 });
 
-
 require("./routes/router")(app);
 
+const setupSwagger = require("./utils/swagger");
+setupSwagger(app);
 
+// Error handling middleware
+app.use(notFound);
+app.use(errorHandler);
 
 server.listen(PORT, () => console.log(`Listening on port ${PORT} \nURL: http://localhost:${PORT}`));
