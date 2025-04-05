@@ -1,47 +1,55 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS base
 
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with retries and more verbose output
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm install --no-fund --no-audit
 
-# Copy application code
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Modify the font import to use local fonts instead of Google Fonts
-RUN sed -i 's|import { Inter } from "next/font/google"|import localFont from "next/font/local"|' src/app/layout.tsx && \
-    sed -i 's|const inter = Inter({ subsets: \["latin"\] })|const inter = localFont({ src: "./fonts/inter.woff2", variable: "--font-inter" })|' src/app/layout.tsx && \
-    mkdir -p src/app/fonts
+# Next.js collects anonymous telemetry data about general usage
+ENV NEXT_TELEMETRY_DISABLED 1
 
-# Add a sample local font file to replace Google Font
-COPY public/fonts/inter.woff2 src/app/fonts/inter.woff2
+# Add special config for Google Fonts for Next.js build
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_FONT_GOOGLE_MOCKED 1
 
-# Remove optimizeFonts from next.config.ts if it exists
-RUN if [ -f next.config.ts ]; then sed -i "/optimizeFonts: false,/d" next.config.ts; fi
-
-# Build the Next.js app
+# Build application
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine AS runner
-# ... rest of your Dockerfile
-
+# Production image, copy all the files and run next
+FROM base AS runner
 WORKDIR /app
 
-# Copy necessary files from builder stage
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/package-lock.json ./
-COPY --from=builder /app/next.config.* ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/src/app/fonts ./src/app/fonts
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
 
-# Expose the port
+# Create a non-root user to run the app and own app files
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Set proper permissions
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# Start the app
-CMD ["npm", "start"]
+ENV PORT 3000
+
+# Command to run the application
+CMD ["node", "server.js"]

@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers/Providers";
 import { Toaster } from "react-hot-toast";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/footer/Footer";
 
-const inter = Inter({ subsets: ["latin"] });
+// Remove this import:
+// import { Inter } from "next/font/google";
+
+// Replace with local font or use font-family in CSS
+// const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "E-Commerce Store",
@@ -20,7 +23,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className} suppressHydrationWarning>
+      {/* Remove the inter.className reference */}
+      <body className="font-sans" suppressHydrationWarning>
         <Providers>
           <Toaster position="top-right" />
           <div className="flex flex-col min-h-screen">

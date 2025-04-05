@@ -3,19 +3,22 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy application code
 COPY . .
 
-# Ensure storage directory exists
+# Generate Prisma client
+RUN npx prisma generate
+
+# Create uploads directory
 RUN mkdir -p storage/uploads
 
-# Expose the port your app runs on
+# Expose port
 EXPOSE 3030
 
-# Start the app
+# Start the application
 CMD ["npm", "start"]
